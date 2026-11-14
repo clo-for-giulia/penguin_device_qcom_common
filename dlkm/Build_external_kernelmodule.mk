@@ -36,12 +36,20 @@ KERNEL_TECHPACK_PREBUILT_DIR := $(KERNEL_PREBUILT_DIR)/vendor_dlkm
 # destination. Additionally, Module.symvers will be copied to resolve dependencies.
 ifneq ($(wildcard $(KERNEL_PREBUILT_DIR)/techpack.built),)
 KBUILD_REQUIRED_KOS :=
-ifeq ($(LOCAL_MODULE_STEM), Module.symvers)
+ifneq ($(filter Module.symvers,$(LOCAL_MODULE_STEM) $(LOCAL_MODULE_KBUILD_NAME)),)
 	LOCAL_USE_PREBUILT_COPY := true
 endif
 
 ifneq ($(wildcard $(KERNEL_TECHPACK_PREBUILT_DIR)/$(LOCAL_MODULE)),)
 	LOCAL_USE_PREBUILT_COPY := true
+endif
+# Without a kernel kit (.config) a module with no prebuilt cannot be built here either: keep the
+# definition so the tree parses, and fail only if something actually installs it.
+ifneq ($(LOCAL_USE_PREBUILT_COPY),true)
+ifeq ($(wildcard $(KERNEL_PREBUILT_DIR)/.config),)
+$(warning $(LOCAL_MODULE): no prebuilt in $(KERNEL_TECHPACK_PREBUILT_DIR))
+	LOCAL_USE_PREBUILT_COPY := true
+endif
 endif
 endif
 
@@ -217,7 +225,7 @@ else
 
 $(info $(KERNEL_TECHPACK_PREBUILT_DIR)/$(LOCAL_MODULE) exist)
 
-ifeq ($(LOCAL_MODULE_STEM), Module.symvers)
+ifneq ($(filter Module.symvers,$(LOCAL_MODULE_STEM) $(LOCAL_MODULE_KBUILD_NAME)),)
 	LOCAL_PREBUILT_PATH := $(KERNEL_PREBUILT_DIR)/Module.symvers
 else
 	LOCAL_PREBUILT_PATH := $(KERNEL_TECHPACK_PREBUILT_DIR)/$(LOCAL_MODULE)
